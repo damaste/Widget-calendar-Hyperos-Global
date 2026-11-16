@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.net.Uri
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import java.time.Instant
@@ -163,7 +164,16 @@ class CalendarWidgetProvider : AppWidgetProvider() {
 
             // Intestazione mese (es. "Novembre 2026")
             val monthName = cap(ym.month.getDisplayName(TextStyle.FULL, IT))
-            rv.setTextViewText(R.id.tv_month, "$monthName ${ym.year}")
+            val title = "$monthName ${ym.year}"
+            rv.setTextViewText(R.id.tv_month, title)
+            // Mesi con nome lungo: testo più piccolo, così l'anno non viene tagliato
+            val titleSp = when {
+                title.length <= 10 -> 17f
+                title.length <= 12 -> 14f
+                title.length == 13 -> 13f
+                else -> 12f
+            }
+            rv.setTextViewTextSize(R.id.tv_month, TypedValue.COMPLEX_UNIT_SP, titleSp)
             rv.setTextColor(R.id.tv_month, accent)
             rv.setTextColor(R.id.tv_weekday, accent)
             rv.setOnClickPendingIntent(R.id.tv_month, broadcastFor(ctx, ACTION_TODAY, id, id * 64 + 50))
