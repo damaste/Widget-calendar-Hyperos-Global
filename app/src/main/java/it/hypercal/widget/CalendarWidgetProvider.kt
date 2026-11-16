@@ -95,7 +95,6 @@ class CalendarWidgetProvider : AppWidgetProvider() {
             )
         }
 
-        /** Sveglia (inesatta, non richiede permessi) subito dopo la mezzanotte. */
         private fun scheduleNextRefresh(ctx: Context) {
             val next = LocalDate.now().plusDays(1)
                 .atStartOfDay(ZoneId.systemDefault()).plusMinutes(1)
@@ -162,11 +161,10 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                 if (cfg.sundayStart) R.layout.widget_calendar_sun else R.layout.widget_calendar
             )
 
-            // Intestazione mese (es. "Novembre 2026")
+            // Intestazione mese
             val monthName = cap(ym.month.getDisplayName(TextStyle.FULL, IT))
             val title = "$monthName ${ym.year}"
             rv.setTextViewText(R.id.tv_month, title)
-            // Mesi con nome lungo: testo più piccolo, così l'anno non viene tagliato
             val titleSp = when {
                 title.length <= 10 -> 17f
                 title.length <= 12 -> 14f
@@ -187,12 +185,20 @@ class CalendarWidgetProvider : AppWidgetProvider() {
             for (r in 0 until 6) {
                 rv.setViewVisibility(rid(ctx, "row_$r"), if (r < weeks) View.VISIBLE else View.GONE)
             }
-            val eventDays = if (cfg.dots) EventsRepository.daysWithEvents(ctx, ym) else emptySet()
+
+            // ✅ FIX: pallini SOLO se l'utente ha selezionato esplicitamente dei calendari
+            val selected = cfg.calendars
+            val eventCounts = if (cfg.dots && selected != null && selected.isNotEmpty()) {
+                EventsRepository.eventCountByDay(ctx, ym)
+            } else {
+                emptyMap()
+            }
+
             for (i in 0 until 42) {
                 val cellId = rid(ctx, "cell_$i")
                 val txtId = rid(ctx, "txt_$i")
-                val dotId = rid(ctx, "dot_$i")
                 val date = first.plusDays((i - lead).toLong())
+
                 if (YearMonth.from(date) == ym) {
                     val isToday = date == today
                     rv.setTextViewText(txtId, date.dayOfMonth.toString())
@@ -200,17 +206,23 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                         rv.setInt(cellId, "setBackgroundResource", rdr(ctx, "today_bg_${cfg.accent}"))
                         rv.setTextColor(txtId, Color.WHITE)
                     }
-                    if (date in eventDays) {
-                        rv.setViewVisibility(dotId, View.VISIBLE)
-                        rv.setInt(
-                            dotId, "setBackgroundResource",
-                            if (isToday) R.drawable.dot_white else rdr(ctx, "dot_${cfg.accent}")
-                        )
+
+                    val count = eventCounts[date] ?: 0
+                    val dotRes = if (isToday) R.drawable.dot_white else rdr(ctx, "dot_${cfg.accent}")
+                    for (k in 0 until 3) {
+                        val dotId = rid(ctx, "dot_${i}${('a' + k)}")
+                        val visible = k < count && k < 3
+                        rv.setViewVisibility(dotId, if (visible) View.VISIBLE else View.INVISIBLE)
+                        if (visible) rv.setInt(dotId, "setBackgroundResource", dotRes)
                     }
+
                     val millis = date.atStartOfDay(zone).toInstant().toEpochMilli()
                     rv.setOnClickPendingIntent(cellId, openCalendarAt(ctx, millis, id * 64 + i))
                 } else {
                     rv.setTextViewText(txtId, "")
+                    for (k in 0 until 3) {
+                        rv.setViewVisibility(rid(ctx, "dot_${i}${('a' + k)}"), View.INVISIBLE)
+                    }
                 }
             }
 
