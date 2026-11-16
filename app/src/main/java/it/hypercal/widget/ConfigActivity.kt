@@ -1,8 +1,10 @@
 package it.hypercal.widget
 
+import android.Manifest
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -10,6 +12,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
@@ -25,11 +28,14 @@ class ConfigActivity : Activity() {
     private val swatches = ArrayList<TextView>()
     private val dp by lazy { resources.displayMetrics.density }
 
+    private lateinit var current: Settings.Values
     private lateinit var rbMonday: RadioButton
     private lateinit var rbSunday: RadioButton
     private lateinit var swDots: Switch
     private lateinit var rgCount: RadioGroup
     private val countButtons = ArrayList<RadioButton>()
+    private lateinit var calContainer: LinearLayout
+    private val calChecks = LinkedHashMap<Long, CheckBox>()
 
     private fun px(v: Int) = (v * dp).toInt()
 
@@ -40,7 +46,8 @@ class ConfigActivity : Activity() {
             AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID
         ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
 
-        val cur = Settings.load(this)
+        current = Settings.load(this)
+        val cur = current
         accent = cur.accent
 
         val col = LinearLayout(this).apply {
@@ -114,6 +121,17 @@ class ConfigActivity : Activity() {
         rgCount.check(countButtons[cur.eventCount - 1].id)
         col.addView(rgCount)
 
+        // --- Calendari / account ---
+        col.addView(section("Calendari da mostrare"))
+        col.addView(TextView(this).apply {
+            text = "Scegli da quali account e calendari prendere appuntamenti ed eventi " +
+                "(pallini e pannello a destra)."
+            textSize = 13f
+        })
+        calContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        col.addView(calContainer)
+        populateCalendars()
+
         // --- Salva ---
         col.addView(Button(this).apply {
             text = getString(R.string.config_save)
@@ -138,15 +156,78 @@ class ConfigActivity : Activity() {
         swatches.forEachIndexed { i, tv -> tv.text = if (i == accent) "✓" else "" }
     }
 
+    private fun populateCalendars() {
+        calContainer.removeAllViews()
+        calChecks.clear()
+
+        if (!EventsRepository.hasPermission(this)) {
+            calContainer.addView(TextView(this).apply {
+                text = "Per scegliere i calendari serve il permesso di lettura del calendario."
+                setPadding(0, px(8), 0, px(4))
+            })
+            calContainer.addView(Button(this).apply {
+                text = getString(R.string.btn_permission)
+                setOnClickListener {
+                    requestPermissions(arrayOf(Manifest.permission.READ_CALENDAR), 2)
+                }
+            })
+            return
+        }
+
+        val list = EventsRepository.listCalendars(this)
+        if (list.isEmpty()) {
+            calContainer.addView(TextView(this).apply {
+                text = "Nessun calendario trovato sul dispositivo."
+                setPadding(0, px(8), 0, px(4))
+            })
+            return
+        }
+
+        val selected = current.calendars
+        var lastAccount: String? = null
+        for (c in list) {
+            if (c.account != lastAccount) {
+                calContainer.addView(TextView(this).apply {
+                    text = c.account
+                    textSize = 13f
+                    setTypeface(typeface, Typeface.BOLD)
+                    setPadding(0, px(14), 0, px(2))
+                })
+                lastAccount = c.account
+            }
+            val cb = CheckBox(this).apply {
+                text = c.name
+                isChecked = selected == null || c.id in selected
+                buttonTintList = ColorStateList.valueOf(c.color)
+            }
+            calChecks[c.id] = cb
+            calContainer.addView(cb)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        populateCalendars()
+        CalendarWidgetProvider.refreshAll(this)
+    }
+
     private fun save() {
         val count = countButtons.indexOfFirst { it.id == rgCount.checkedRadioButtonId } + 1
+        val calendars: Set<Long>? = when {
+            calChecks.isEmpty() -> current.calendars          // elenco non disponibile: non cambiare
+            calChecks.values.all { it.isChecked } -> null     // tutti (inclusi quelli futuri)
+            else -> calChecks.filterValues { it.isChecked }.keys.toSet()
+        }
         Settings.save(
             this,
             Settings.Values(
                 accent = accent,
                 sundayStart = rbSunday.isChecked,
                 dots = swDots.isChecked,
-                eventCount = count.coerceIn(1, 4)
+                eventCount = count.coerceIn(1, 4),
+                calendars = calendars
             )
         )
         CalendarWidgetProvider.refreshAll(this)

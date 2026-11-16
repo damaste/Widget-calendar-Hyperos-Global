@@ -5,11 +5,13 @@ import android.content.Context
 /** Impostazioni condivise da tutti i widget. */
 object Settings {
 
+    /** [calendars] = null significa "tutti i calendari". */
     data class Values(
         val accent: Int,
         val sundayStart: Boolean,
         val dots: Boolean,
-        val eventCount: Int
+        val eventCount: Int,
+        val calendars: Set<Long>? = null
     )
 
     val ACCENTS = intArrayOf(
@@ -23,20 +25,24 @@ object Settings {
 
     fun load(ctx: Context): Values {
         val p = prefs(ctx)
+        val raw = p.getStringSet("calendars", null)
         return Values(
             accent = p.getInt("accent", 0).coerceIn(0, ACCENTS.size - 1),
             sundayStart = p.getBoolean("sunday_start", false),
             dots = p.getBoolean("dots", true),
-            eventCount = p.getInt("event_count", 3).coerceIn(1, 4)
+            eventCount = p.getInt("event_count", 3).coerceIn(1, 4),
+            calendars = raw?.mapNotNull { it.toLongOrNull() }?.toSet()
         )
     }
 
     fun save(ctx: Context, v: Values) {
-        prefs(ctx).edit()
+        val e = prefs(ctx).edit()
             .putInt("accent", v.accent)
             .putBoolean("sunday_start", v.sundayStart)
             .putBoolean("dots", v.dots)
             .putInt("event_count", v.eventCount)
-            .apply()
+        if (v.calendars == null) e.remove("calendars")
+        else e.putStringSet("calendars", v.calendars.map { it.toString() }.toSet())
+        e.apply()
     }
 }

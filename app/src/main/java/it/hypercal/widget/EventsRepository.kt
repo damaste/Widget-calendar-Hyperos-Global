@@ -16,10 +16,56 @@ object EventsRepository {
 
     data class Item(val title: String, val begin: Long, val allDay: Boolean)
 
+    data class CalendarInfo(val id: Long, val name: String, val account: String, val color: Int)
+
     private const val DAY_MS = 24L * 60 * 60 * 1000
 
     fun hasPermission(ctx: Context): Boolean =
         ctx.checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+
+    /** Elenco di tutti i calendari presenti sul dispositivo, ordinati per account. */
+    fun listCalendars(ctx: Context): List<CalendarInfo> {
+        if (!hasPermission(ctx)) return emptyList()
+        val projection = arrayOf(
+            CalendarContract.Calendars._ID,
+            CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
+            CalendarContract.Calendars.ACCOUNT_NAME,
+            CalendarContract.Calendars.ACCOUNT_TYPE,
+            CalendarContract.Calendars.CALENDAR_COLOR
+        )
+        val result = ArrayList<CalendarInfo>()
+        try {
+            ctx.contentResolver.query(
+                CalendarContract.Calendars.CONTENT_URI, projection, null, null,
+                "${CalendarContract.Calendars.ACCOUNT_NAME} ASC, " +
+                    "${CalendarContract.Calendars.CALENDAR_DISPLAY_NAME} ASC"
+            )?.use { c ->
+                while (c.moveToNext()) {
+                    val type = c.getString(3) ?: ""
+                    val account = if (type == CalendarContract.ACCOUNT_TYPE_LOCAL) "Sul dispositivo"
+                    else (c.getString(2) ?: "Account")
+                    result.add(
+                        CalendarInfo(
+                            id = c.getLong(0),
+                            name = c.getString(1)?.takeIf { it.isNotBlank() } ?: account,
+                            account = account,
+                            color = c.getInt(4) or (0xFF shl 24)
+                        )
+                    )
+                }
+            }
+        } catch (_: Exception) {
+            return emptyList()
+        }
+        return result
+    }
+
+    /** Filtro SQL sui calendari scelti; null = nessun filtro (tutti). */
+    private fun calendarFilter(ctx: Context): String? {
+        val ids = Settings.load(ctx).calendars ?: return null
+        if (ids.isEmpty()) return "${CalendarContract.Instances.CALENDAR_ID} IN (-1)"
+        return "${CalendarContract.Instances.CALENDAR_ID} IN (${ids.joinToString(",")})"
+    }
 
     fun upcoming(ctx: Context, limit: Int, days: Int = 14): List<Item> {
         if (!hasPermission(ctx)) return emptyList()
@@ -37,7 +83,8 @@ object EventsRepository {
         val result = ArrayList<Item>()
         try {
             ctx.contentResolver.query(
-                uri, projection, null, null, "${CalendarContract.Instances.BEGIN} ASC"
+                uri, projection, calendarFilter(ctx), null,
+                "${CalendarContract.Instances.BEGIN} ASC"
             )?.use { c ->
                 while (c.moveToNext() && result.size < limit) {
                     val end = c.getLong(2)
@@ -77,7 +124,7 @@ object EventsRepository {
         )
         val days = HashSet<LocalDate>()
         try {
-            ctx.contentResolver.query(uri, projection, null, null, null)?.use { c ->
+            ctx.contentResolver.query(uri, projection, calendarFilter(ctx), null, null)?.use { c ->
                 while (c.moveToNext()) {
                     val begin = c.getLong(0)
                     val end = c.getLong(1)
