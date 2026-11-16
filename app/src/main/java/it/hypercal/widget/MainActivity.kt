@@ -79,6 +79,12 @@ class MainActivity : Activity() {
             setPadding(0, pad, 0, 0)
         })
 
+        col.addView(TextView(this).apply {
+            text = "Versione 1.3 (selettore colori, filtro calendari)"
+            textSize = 12f
+            setPadding(0, pad, 0, 0)
+        })
+
         setContentView(ScrollView(this).apply { addView(col) })
     }
 

@@ -5,11 +5,8 @@ import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.CheckBox
@@ -24,11 +21,11 @@ import android.widget.TextView
 class ConfigActivity : Activity() {
 
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
-    private var accent = 0
-    private val swatches = ArrayList<TextView>()
     private val dp by lazy { resources.displayMetrics.density }
 
     private lateinit var current: Settings.Values
+    private lateinit var monthPicker: ColorPickerView
+    private lateinit var dotPicker: ColorPickerView
     private lateinit var rbMonday: RadioButton
     private lateinit var rbSunday: RadioButton
     private lateinit var swDots: Switch
@@ -48,7 +45,6 @@ class ConfigActivity : Activity() {
 
         current = Settings.load(this)
         val cur = current
-        accent = cur.accent
 
         val col = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -61,28 +57,14 @@ class ConfigActivity : Activity() {
             setTypeface(typeface, Typeface.BOLD)
         })
 
-        // --- Colore ---
-        col.addView(section(getString(R.string.config_color)))
-        val swatchRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        Settings.ACCENTS.forEachIndexed { i, color ->
-            val tv = TextView(this).apply {
-                gravity = Gravity.CENTER
-                textSize = 18f
-                setTextColor(Color.WHITE)
-                setTypeface(typeface, Typeface.BOLD)
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(color)
-                }
-                contentDescription = Settings.ACCENT_NAMES[i]
-                layoutParams = LinearLayout.LayoutParams(px(44), px(44)).apply { marginEnd = px(10) }
-                setOnClickListener { accent = i; refreshSwatches() }
-            }
-            swatches.add(tv)
-            swatchRow.addView(tv)
-        }
-        col.addView(swatchRow)
-        refreshSwatches()
+        // --- Colori ---
+        col.addView(section("Colore del mese e di oggi"))
+        monthPicker = ColorPickerView(this, cur.monthColor)
+        col.addView(monthPicker)
+
+        col.addView(section("Colore dei pallini"))
+        dotPicker = ColorPickerView(this, cur.dotColor)
+        col.addView(dotPicker)
 
         // --- Primo giorno della settimana ---
         col.addView(section(getString(R.string.config_week_start)))
@@ -152,10 +134,6 @@ class ConfigActivity : Activity() {
         setPadding(0, px(24), 0, px(8))
     }
 
-    private fun refreshSwatches() {
-        swatches.forEachIndexed { i, tv -> tv.text = if (i == accent) "✓" else "" }
-    }
-
     private fun populateCalendars() {
         calContainer.removeAllViews()
         calChecks.clear()
@@ -223,7 +201,8 @@ class ConfigActivity : Activity() {
         Settings.save(
             this,
             Settings.Values(
-                accent = accent,
+                monthColor = monthPicker.color,
+                dotColor = dotPicker.color,
                 sundayStart = rbSunday.isChecked,
                 dots = swDots.isChecked,
                 eventCount = count.coerceIn(1, 4),

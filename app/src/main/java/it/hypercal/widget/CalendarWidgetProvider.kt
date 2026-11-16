@@ -95,6 +95,7 @@ class CalendarWidgetProvider : AppWidgetProvider() {
             )
         }
 
+        /** Sveglia (inesatta, non richiede permessi) subito dopo la mezzanotte. */
         private fun scheduleNextRefresh(ctx: Context) {
             val next = LocalDate.now().plusDays(1)
                 .atStartOfDay(ZoneId.systemDefault()).plusMinutes(1)
@@ -146,12 +147,16 @@ class CalendarWidgetProvider : AppWidgetProvider() {
         private fun rid(ctx: Context, name: String) =
             ctx.resources.getIdentifier(name, "id", ctx.packageName)
 
-        private fun rdr(ctx: Context, name: String) =
-            ctx.resources.getIdentifier(name, "drawable", ctx.packageName)
+        private fun contrastOn(color: Int): Int {
+            val lum = (0.299 * Color.red(color) + 0.587 * Color.green(color) +
+                0.114 * Color.blue(color)) / 255.0
+            return if (lum > 0.65) 0xFF1C1C1E.toInt() else Color.WHITE
+        }
 
         private fun render(ctx: Context, mgr: AppWidgetManager, id: Int) {
             val cfg = Settings.load(ctx)
-            val accent = Settings.ACCENTS[cfg.accent]
+            val monthColor = cfg.monthColor
+            val dotColor = cfg.dotColor
             val offset = prefs(ctx).getInt(key(id), 0)
             val today = LocalDate.now()
             val ym = YearMonth.from(today).plusMonths(offset.toLong())
@@ -161,10 +166,11 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                 if (cfg.sundayStart) R.layout.widget_calendar_sun else R.layout.widget_calendar
             )
 
-            // Intestazione mese
+            // Intestazione mese (es. "Novembre 2026")
             val monthName = cap(ym.month.getDisplayName(TextStyle.FULL, IT))
             val title = "$monthName ${ym.year}"
             rv.setTextViewText(R.id.tv_month, title)
+            // Mesi con nome lungo: testo più piccolo, così l'anno non viene tagliato
             val titleSp = when {
                 title.length <= 10 -> 17f
                 title.length <= 12 -> 14f
@@ -172,8 +178,8 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                 else -> 12f
             }
             rv.setTextViewTextSize(R.id.tv_month, TypedValue.COMPLEX_UNIT_SP, titleSp)
-            rv.setTextColor(R.id.tv_month, accent)
-            rv.setTextColor(R.id.tv_weekday, accent)
+            rv.setTextColor(R.id.tv_month, monthColor)
+            rv.setTextColor(R.id.tv_weekday, monthColor)
             rv.setOnClickPendingIntent(R.id.tv_month, broadcastFor(ctx, ACTION_TODAY, id, id * 64 + 50))
             rv.setOnClickPendingIntent(R.id.btn_prev, broadcastFor(ctx, ACTION_PREV, id, id * 64 + 51))
             rv.setOnClickPendingIntent(R.id.btn_next, broadcastFor(ctx, ACTION_NEXT, id, id * 64 + 52))
@@ -185,44 +191,37 @@ class CalendarWidgetProvider : AppWidgetProvider() {
             for (r in 0 until 6) {
                 rv.setViewVisibility(rid(ctx, "row_$r"), if (r < weeks) View.VISIBLE else View.GONE)
             }
-
-            // ✅ FIX: pallini SOLO se l'utente ha selezionato esplicitamente dei calendari
-            val selected = cfg.calendars
-            val eventCounts = if (cfg.dots && selected != null && selected.isNotEmpty()) {
-                EventsRepository.eventCountByDay(ctx, ym)
-            } else {
-                emptyMap()
-            }
-
+            // Mesi con 6 righe: righe più basse, quindi numeri più piccoli e più in alto
+            val tight = weeks >= 6
+            val density = ctx.resources.displayMetrics.density
+            val eventDays = if (cfg.dots) EventsRepository.daysWithEvents(ctx, ym) else emptySet()
             for (i in 0 until 42) {
                 val cellId = rid(ctx, "cell_$i")
                 val txtId = rid(ctx, "txt_$i")
+                val dotId = rid(ctx, "dot_$i")
+                val pillId = rid(ctx, "pill_$i")
                 val date = first.plusDays((i - lead).toLong())
-
                 if (YearMonth.from(date) == ym) {
                     val isToday = date == today
                     rv.setTextViewText(txtId, date.dayOfMonth.toString())
+                    rv.setTextViewTextSize(txtId, TypedValue.COMPLEX_UNIT_SP, if (tight) 10f else 12f)
+                    rv.setViewPadding(txtId, 0, 0, 0, (5 * density).toInt())
                     if (isToday) {
-                        rv.setInt(cellId, "setBackgroundResource", rdr(ctx, "today_bg_${cfg.accent}"))
-                        rv.setTextColor(txtId, Color.WHITE)
+                        rv.setViewVisibility(pillId, View.VISIBLE)
+                        rv.setInt(pillId, "setColorFilter", monthColor)
+                        rv.setTextColor(txtId, contrastOn(monthColor))
                     }
-
-                    val count = eventCounts[date] ?: 0
-                    val dotRes = if (isToday) R.drawable.dot_white else rdr(ctx, "dot_${cfg.accent}")
-                    for (k in 0 until 3) {
-                        val dotId = rid(ctx, "dot_${i}${('a' + k)}")
-                        val visible = k < count && k < 3
-                        rv.setViewVisibility(dotId, if (visible) View.VISIBLE else View.INVISIBLE)
-                        if (visible) rv.setInt(dotId, "setBackgroundResource", dotRes)
+                    if (date in eventDays) {
+                        rv.setViewVisibility(dotId, View.VISIBLE)
+                        rv.setInt(
+                            dotId, "setColorFilter",
+                            if (isToday) contrastOn(monthColor) else dotColor
+                        )
                     }
-
                     val millis = date.atStartOfDay(zone).toInstant().toEpochMilli()
                     rv.setOnClickPendingIntent(cellId, openCalendarAt(ctx, millis, id * 64 + i))
                 } else {
                     rv.setTextViewText(txtId, "")
-                    for (k in 0 until 3) {
-                        rv.setViewVisibility(rid(ctx, "dot_${i}${('a' + k)}"), View.INVISIBLE)
-                    }
                 }
             }
 
