@@ -13,8 +13,19 @@ jobs:
           java-version: 17
       - name: Android SDK
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          SDK=${ANDROID_HOME:-/usr/local/lib/android/sdk}
+          SM=$(find "$SDK/cmdline-tools" -name sdkmanager -type f 2>/dev/null | head -n1)
+          if [ -z "$SM" ]; then
+            curl -sSLo /tmp/ct.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            mkdir -p "$SDK/cmdline-tools"
+            unzip -q /tmp/ct.zip -d "$SDK/cmdline-tools"
+            mv "$SDK/cmdline-tools/cmdline-tools" "$SDK/cmdline-tools/latest"
+            SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          yes | "$SM" --sdk_root="$SDK" --licenses > /dev/null || true
+          "$SM" --sdk_root="$SDK" "platforms;android-34" "build-tools;34.0.0"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "sdk.dir=$SDK" > local.properties
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.7
