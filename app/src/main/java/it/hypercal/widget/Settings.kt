@@ -43,6 +43,9 @@ object Settings {
             .putInt("event_count", v.eventCount)
         if (v.calendars == null) e.remove("calendars")
         else e.putStringSet("calendars", v.calendars.map { it.toString() }.toSet())
-        e.apply()
+        // ✅ FIX: commit() sincrono invece di apply() asincrono
+        e.commit()
+        // ✅ FIX: forza il refresh del widget dopo il salvataggio
+        CalendarWidgetProvider.refreshAll(ctx)
     }
 }
