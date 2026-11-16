@@ -105,9 +105,17 @@ object EventsRepository {
         return result
     }
 
-    /** Giorni del mese che hanno almeno un evento (anche eventi su più giorni). */
-    fun daysWithEvents(ctx: Context, ym: YearMonth): Set<LocalDate> {
-        if (!hasPermission(ctx)) return emptySet()
+     /** Giorni del mese che hanno almeno un evento (anche eventi su più giorni). */
+    fun daysWithEvents(ctx: Context, ym: YearMonth): Set<LocalDate> =
+        eventCountByDay(ctx, ym).keys
+
+    /**
+     * ✅ NUOVO: mappa giorno → numero di eventi.
+     * Filtra già per i calendari scelti tramite calendarFilter(ctx).
+     * Gli eventi multi-giorno vengono contati su ogni giorno che coprono.
+     */
+    fun eventCountByDay(ctx: Context, ym: YearMonth): Map<LocalDate, Int> {
+        if (!hasPermission(ctx)) return emptyMap()
         val zone = ZoneId.systemDefault()
         val monthFirst = ym.atDay(1)
         val monthLast = ym.atEndOfMonth()
@@ -122,7 +130,7 @@ object EventsRepository {
             CalendarContract.Instances.END,
             CalendarContract.Instances.ALL_DAY
         )
-        val days = HashSet<LocalDate>()
+        val counts = HashMap<LocalDate, Int>()
         try {
             ctx.contentResolver.query(uri, projection, calendarFilter(ctx), null, null)?.use { c ->
                 while (c.moveToNext()) {
@@ -142,14 +150,13 @@ object EventsRepository {
                     var d = if (s.isBefore(monthFirst)) monthFirst else s
                     val last = if (e.isAfter(monthLast)) monthLast else e
                     while (!d.isAfter(last)) {
-                        days.add(d)
+                        counts[d] = (counts[d] ?: 0) + 1
                         d = d.plusDays(1)
                     }
                 }
             }
         } catch (_: Exception) {
-            return emptySet()
+            return emptyMap()
         }
-        return days
+        return counts
     }
-}
