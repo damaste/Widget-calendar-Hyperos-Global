@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Calendario IT</string>
+    <string name="widget_label">Calendario mensile</string>
+    <string name="widget_description">Calendario mensile in italiano con i prossimi eventi, in stile HyperOS.</string>
+    <string name="wd_1">L</string>
+    <string name="wd_2">M</string>
+    <string name="wd_3">M</string>
+    <string name="wd_4">G</string>
+    <string name="wd_5">V</string>
+    <string name="wd_6">S</string>
+    <string name="wd_7">D</string>
+    <string name="no_events">Nessun evento imminente</string>
+    <string name="no_permission">Tocca per consentire l\'accesso al calendario</string>
+    <string name="untitled">(Senza titolo)</string>
+    <string name="tomorrow">Domani</string>
+    <string name="main_title">Calendario IT</string>
+    <string name="main_body">Widget calendario in stile HyperOS, in italiano. Legge gli eventi dal Calendario di sistema (anche quello di HyperOS Global) e mostra i prossimi appuntamenti accanto al mese.</string>
+    <string name="btn_permission">Consenti accesso al calendario</string>
+    <string name="btn_add_widget">Aggiungi il widget alla Home</string>
+    <string name="status_ok">Accesso al calendario: concesso ✓</string>
+    <string name="status_ko">Accesso al calendario: non concesso</string>
+    <string name="main_tip">Se il widget non si aggiorna: in Impostazioni › App › Calendario IT abilita \"Avvio automatico\" e imposta il risparmio energetico su \"Nessuna restrizione\".</string>
+    <string name="btn_settings">Impostazioni widget</string>
+    <string name="config_title">Impostazioni widget</string>
+    <string name="config_color">Colore di evidenziazione</string>
+    <string name="config_week_start">Primo giorno della settimana</string>
+    <string name="config_monday">Lunedì</string>
+    <string name="config_sunday">Domenica</string>
+    <string name="config_dots">Pallino sui giorni con eventi</string>
+    <string name="config_event_count">Eventi mostrati nel pannello</string>
+    <string name="config_save">Salva</string>
+</resources>
