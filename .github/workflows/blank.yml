@@ -7,6 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Fix layout
+        run: sed -i 's/<View /<FrameLayout /' app/src/main/res/layout/widget_calendar.xml app/src/main/res/layout/widget_calendar_sun.xml
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
