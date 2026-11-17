@@ -61,6 +61,8 @@ class CalendarWidgetProvider : AppWidgetProvider() {
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
             Intent.ACTION_LOCALE_CHANGED -> {
+                // Nuovo giorno / cambio ora: si torna al mese corrente
+                prefs(context).edit().clear().apply()
                 refreshAll(context)
                 scheduleNextRefresh(context)
             }
@@ -195,34 +197,40 @@ class CalendarWidgetProvider : AppWidgetProvider() {
             val tight = weeks >= 6
             val density = ctx.resources.displayMetrics.density
             val eventDays = if (cfg.dots) EventsRepository.daysWithEvents(ctx, ym) else emptySet()
+            val colNormal = ctx.getColor(R.color.text_primary)
+            val colWeekend = ctx.getColor(R.color.text_weekend)
             for (i in 0 until 42) {
                 val cellId = rid(ctx, "cell_$i")
                 val txtId = rid(ctx, "txt_$i")
                 val dotId = rid(ctx, "dot_$i")
                 val pillId = rid(ctx, "pill_$i")
+                val col = i % 7
+                val weekend = if (cfg.sundayStart) (col == 0 || col == 6) else (col >= 5)
                 val date = first.plusDays((i - lead).toLong())
-                if (YearMonth.from(date) == ym) {
-                    val isToday = date == today
-                    rv.setTextViewText(txtId, date.dayOfMonth.toString())
-                    rv.setTextViewTextSize(txtId, TypedValue.COMPLEX_UNIT_SP, if (tight) 10f else 12f)
-                    rv.setViewPadding(txtId, 0, 0, 0, (5 * density).toInt())
-                    if (isToday) {
-                        rv.setViewVisibility(pillId, View.VISIBLE)
-                        rv.setInt(pillId, "setColorFilter", monthColor)
-                        rv.setTextColor(txtId, contrastOn(monthColor))
-                    }
-                    if (date in eventDays) {
-                        rv.setViewVisibility(dotId, View.VISIBLE)
-                        rv.setInt(
-                            dotId, "setColorFilter",
-                            if (isToday) contrastOn(monthColor) else dotColor
-                        )
-                    }
-                    val millis = date.atStartOfDay(zone).toInstant().toEpochMilli()
-                    rv.setOnClickPendingIntent(cellId, openCalendarAt(ctx, millis, id * 64 + i))
-                } else {
-                    rv.setTextViewText(txtId, "")
+                val inMonth = YearMonth.from(date) == ym
+                val isToday = inMonth && date == today
+                val hasEvent = inMonth && date in eventDays
+
+                // Ogni proprietà viene impostata sempre: il launcher può riutilizzare le
+                // viste dell'aggiornamento precedente e ciò che non si reimposta resta.
+                rv.setTextViewText(txtId, if (inMonth) date.dayOfMonth.toString() else "")
+                rv.setTextViewTextSize(txtId, TypedValue.COMPLEX_UNIT_SP, if (tight) 10f else 12f)
+                rv.setViewPadding(txtId, 0, 0, 0, (5 * density).toInt())
+                rv.setTextColor(
+                    txtId,
+                    if (isToday) contrastOn(monthColor) else if (weekend) colWeekend else colNormal
+                )
+
+                rv.setViewVisibility(pillId, if (isToday) View.VISIBLE else View.GONE)
+                if (isToday) rv.setInt(pillId, "setColorFilter", monthColor)
+
+                rv.setViewVisibility(dotId, if (hasEvent) View.VISIBLE else View.GONE)
+                if (hasEvent) {
+                    rv.setInt(dotId, "setColorFilter", if (isToday) contrastOn(monthColor) else dotColor)
                 }
+
+                val millis = date.atStartOfDay(zone).toInstant().toEpochMilli()
+                rv.setOnClickPendingIntent(cellId, openCalendarAt(ctx, millis, id * 64 + i))
             }
 
             // Pannello destro: oggi + prossimi eventi

@@ -91,11 +91,11 @@ class ConfigActivity : Activity() {
         // --- Numero eventi ---
         col.addView(section(getString(R.string.config_event_count)))
         rgCount = RadioGroup(this).apply { orientation = RadioGroup.HORIZONTAL }
-        for (n in 1..4) {
+        for (n in 1..6) {
             val rb = RadioButton(this).apply {
                 id = View.generateViewId()
                 text = n.toString()
-                setPadding(px(4), 0, px(20), 0)
+                setPadding(px(2), 0, px(10), 0)
             }
             countButtons.add(rb)
             rgCount.addView(rb)
@@ -205,7 +205,7 @@ class ConfigActivity : Activity() {
                 dotColor = dotPicker.color,
                 sundayStart = rbSunday.isChecked,
                 dots = swDots.isChecked,
-                eventCount = count.coerceIn(1, 4),
+                eventCount = count.coerceIn(1, 6),
                 calendars = calendars
             )
         )

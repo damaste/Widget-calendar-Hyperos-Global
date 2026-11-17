@@ -35,7 +35,7 @@ object Settings {
             dotColor = dot,
             sundayStart = p.getBoolean("sunday_start", false),
             dots = p.getBoolean("dots", true),
-            eventCount = p.getInt("event_count", 3).coerceIn(1, 4),
+            eventCount = p.getInt("event_count", 4).coerceIn(1, 6),
             calendars = raw?.mapNotNull { it.toLongOrNull() }?.toSet()
         )
     }

@@ -80,7 +80,7 @@ class MainActivity : Activity() {
         })
 
         col.addView(TextView(this).apply {
-            text = "Versione 1.3 (selettore colori, filtro calendari)"
+            text = "Versione 1.4 (aggiornamento giorno corretto, testo eventi compatto)"
             textSize = 12f
             setPadding(0, pad, 0, 0)
         })
