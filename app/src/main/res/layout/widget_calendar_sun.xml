@@ -504,13 +504,13 @@
         </LinearLayout>
     </LinearLayout>
     <LinearLayout android:id="@+id/panel_right" android:layout_width="0dp" android:layout_height="match_parent" android:layout_marginStart="10dp"
-        android:layout_weight="1" android:background="@drawable/panel_bg" android:orientation="vertical" android:padding="12dp">
+        android:layout_weight="1" android:background="@drawable/panel_bg" android:orientation="vertical" android:padding="10dp">
         <TextView android:id="@+id/tv_weekday" android:layout_width="match_parent" android:layout_height="wrap_content" android:includeFontPadding="false"
             android:singleLine="true" android:text="Lunedì" android:textColor="@color/accent" android:textSize="12sp" android:textStyle="bold" />
         <TextView android:id="@+id/tv_day_num" android:layout_width="match_parent" android:layout_height="wrap_content" android:includeFontPadding="false"
-            android:singleLine="true" android:text="16" android:textColor="@color/text_primary" android:textSize="34sp" android:textStyle="bold" />
+            android:singleLine="true" android:text="16" android:textColor="@color/text_primary" android:textSize="28sp" android:textStyle="bold" />
         <TextView android:id="@+id/tv_events" android:layout_width="match_parent" android:layout_height="0dp" android:layout_marginTop="4dp" android:layout_weight="1"
-            android:ellipsize="end" android:includeFontPadding="false" android:lineSpacingExtra="2dp" android:maxLines="4"
-            android:text="@string/no_events" android:textColor="@color/text_secondary" android:textSize="11sp" />
+            android:ellipsize="end" android:includeFontPadding="false" android:lineSpacingExtra="1dp" android:maxLines="8"
+            android:text="@string/no_events" android:textColor="@color/text_secondary" android:textSize="10sp" />
     </LinearLayout>
 </LinearLayout>
