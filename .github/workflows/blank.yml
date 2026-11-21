@@ -7,8 +7,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fix layout
-        run: sed -i 's/<View /<FrameLayout /' app/src/main/res/layout/widget_calendar.xml app/src/main/res/layout/widget_calendar_sun.xml
+      - name: Applica HyperCalIT.zip
+        run: |
+          if [ -f HyperCalIT.zip ]; then
+            unzip -oq HyperCalIT.zip -d _upd
+            cp -rf _upd/HyperCalIT/app/. app/
+            cp -f _upd/HyperCalIT/build.gradle.kts _upd/HyperCalIT/settings.gradle.kts _upd/HyperCalIT/gradle.properties .
+          fi
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
