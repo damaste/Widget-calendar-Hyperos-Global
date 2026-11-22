@@ -4,8 +4,10 @@
 
 A free, open-source Android home-screen calendar widget inspired by the HyperOS calendar widget that Xiaomi ships only in China. Made for HyperOS Global phones, works on any Android 8.0+ device.
 
-<!-- Add a screenshot: upload it to the repo (e.g. docs/screenshot.png) and uncomment the next line -->
-<!-- ![HyperCalendar Widget](docs/screenshot.png) -->
+<img width="1289" height="2753" alt="Screenshot_2026-11-22-21-25-11-920_com miui home-edit" src="https://github.com/user-attachments/assets/6e6fa73a-09f1-4a5c-af4c-b521338c1578" />
+<img width="1289" height="2753" alt="Screenshot_2026-11-22-21-27-54-075_it hypercal widget-edit" src="https://github.com/user-attachments/assets/5f13559c-d1c3-4f5e-899b-9f7128e54b84" />
+<img width="1289" height="2753" alt="Screenshot_2026-11-22-21-27-44-574_it hypercal widget-edit" src="https://github.com/user-attachments/assets/a4ad09b8-2617-4b6e-af70-07f462fb36ea" />
+
 
 ## Features
 
